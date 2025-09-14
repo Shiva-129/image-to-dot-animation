@@ -1,0 +1,94 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Photo to Animated Dots</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <h1>Photo to Animated Dots</h1>
+    <p>Upload an image and customize the dot field, animation, and hover behavior.</p>
+  </header>
+
+  <main class="layout">
+    <section class="controls" aria-label="Controls">
+      <div class="upload">
+        <label class="file-label" for="fileInput">Choose Image</label>
+        <input id="fileInput" type="file" accept="image/*" />
+        <span class="hint">or drag & drop anywhere</span>
+      </div>
+
+      <div class="control-group">
+        <label for="dotSize">Dot Size</label>
+        <input id="dotSize" type="range" min="1" max="12" step="1" value="4" />
+        <output id="dotSizeValue" for="dotSize">4</output>
+      </div>
+
+      <div class="control-group">
+        <label for="density">Density</label>
+        <input id="density" type="range" min="4" max="24" step="1" value="8" />
+        <output id="densityValue" for="density">8</output>
+      </div>
+
+      <div class="control-group">
+        <label for="animationStyle">Animation Style</label>
+        <select id="animationStyle">
+          <option value="none">None</option>
+          <option value="pulse" selected>Pulse</option>
+          <option value="float">Float</option>
+          <option value="twinkle">Twinkle</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="hoverEffect">Hover Effect</label>
+        <select id="hoverEffect">
+          <option value="none">None</option>
+          <option value="fade" selected>Fade</option>
+          <option value="repel">Repel</option>
+          <option value="attract">Attract</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="backgroundColor">Background</label>
+        <input id="backgroundColor" type="color" value="#0b0d12" />
+      </div>
+
+      <div class="control-row">
+        <button id="resetBtn" type="button" class="btn">Reset</button>
+        <div class="dropdown">
+          <button id="downloadDropdownBtn" type="button" class="btn secondary dropdown-btn">
+            Download
+            <span class="dropdown-arrow">▼</span>
+          </button>
+          <div id="downloadDropdown" class="dropdown-menu">
+            <button id="downloadBtn" type="button" class="dropdown-item">PNG Image</button>
+            <button id="downloadJsonBtn" type="button" class="dropdown-item">JSON Data</button>
+            <button id="downloadZipBtn" type="button" class="dropdown-item">ZIP Package</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="stage" aria-label="Canvas Stage">
+      <canvas id="canvas" width="1280" height="800" aria-label="Dots canvas"></canvas>
+      <div id="dropOverlay" class="drop-overlay" hidden>
+        <div class="drop-message">Drop image to load</div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>Tip: higher density makes more dots; lower density is faster.</span>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
