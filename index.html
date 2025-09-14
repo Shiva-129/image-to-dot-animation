@@ -11,7 +11,7 @@
 </head>
 <body>
   <header class="site-header">
-    <h1>Photo to Animated Dots</h1>
+    <h1 class="logo">SHOUKO</h1>
     <p>Upload an image and customize the dot field, animation, and hover behavior.</p>
   </header>
 
@@ -36,6 +36,20 @@
       </div>
 
       <div class="control-group">
+        <label for="defaultShape">Default Shape</label>
+        <select id="defaultShape">
+          <option value="dots" selected>Dots</option>
+          <option value="triangle">Triangle</option>
+          <option value="moon">Moon</option>
+          <option value="heart">Heart</option>
+          <option value="arrow">Arrow</option>
+          <option value="square">Square</option>
+          <option value="diamond">Diamond</option>
+          <option value="star">Star</option>
+        </select>
+      </div>
+
+      <div class="control-group">
         <label for="animationStyle">Animation Style</label>
         <select id="animationStyle">
           <option value="none">None</option>
@@ -52,6 +66,30 @@
           <option value="fade" selected>Fade</option>
           <option value="repel">Repel</option>
           <option value="attract">Attract</option>
+          <option value="shape">Change Shape</option>
+        </select>
+      </div>
+
+      <div class="control-group" id="shapeSelectorGroup" style="display: none;">
+        <label for="shapeType">Shape Type</label>
+        <select id="shapeType">
+          <option value="star">Star</option>
+          <option value="moon">Moon</option>
+          <option value="heart">Heart</option>
+          <option value="arrow">Arrow</option>
+          <option value="square">Square</option>
+          <option value="diamond">Diamond</option>
+          <option value="triangle">Triangle</option>
+        </select>
+      </div>
+
+      <div class="control-group" id="hoverEffect2Group" style="display: none;">
+        <label for="hoverEffect2">Hover Effect 2</label>
+        <select id="hoverEffect2">
+          <option value="none">None</option>
+          <option value="fade">Fade</option>
+          <option value="repel">Repel</option>
+          <option value="attract">Attract</option>
         </select>
       </div>
 
@@ -61,7 +99,6 @@
       </div>
 
       <div class="control-row">
-        <button id="resetBtn" type="button" class="btn">Reset</button>
         <div class="dropdown">
           <button id="downloadDropdownBtn" type="button" class="btn secondary dropdown-btn">
             Download

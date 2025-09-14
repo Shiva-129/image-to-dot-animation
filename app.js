@@ -8,10 +8,14 @@ const dotSizeEl = document.getElementById('dotSize');
 const dotSizeValueEl = document.getElementById('dotSizeValue');
 const densityEl = document.getElementById('density');
 const densityValueEl = document.getElementById('densityValue');
+const defaultShapeEl = document.getElementById('defaultShape');
 const animationStyleEl = document.getElementById('animationStyle');
 const hoverEffectEl = document.getElementById('hoverEffect');
+const shapeTypeEl = document.getElementById('shapeType');
+const shapeSelectorGroup = document.getElementById('shapeSelectorGroup');
+const hoverEffect2El = document.getElementById('hoverEffect2');
+const hoverEffect2Group = document.getElementById('hoverEffect2Group');
 const backgroundColorEl = document.getElementById('backgroundColor');
-const resetBtn = document.getElementById('resetBtn');
 const downloadBtn = document.getElementById('downloadBtn');
 const downloadJsonBtn = document.getElementById('downloadJsonBtn');
 const downloadZipBtn = document.getElementById('downloadZipBtn');
@@ -29,19 +33,23 @@ let lastFrameTime = 0;
 let animationId = null;
 let isPointerInside = false;
 let pointer = { x: 0, y: 0 };
+let hoveredParticles = new Set();
 
 // Config
 const config = {
   dotSize: Number(dotSizeEl.value),
   density: Number(densityEl.value),
+  defaultShape: defaultShapeEl.value,
   animationStyle: animationStyleEl.value,
   hoverEffect: hoverEffectEl.value,
+  shapeType: shapeTypeEl.value,
+  hoverEffect2: hoverEffect2El.value,
   backgroundColor: backgroundColorEl.value,
   maxCanvasWidth: 1920,
   maxCanvasHeight: 1080,
   hoverRadius: 150,
-  repelForce: 520,
-  attractForce: -360,
+  repelForce: 1200,
+  attractForce: -800,
 };
 
 // Particle structure
@@ -80,6 +88,104 @@ function hexToRgba(hex, alpha = 1) {
 
 function rgbaToString({ r, g, b, a }) {
   return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
+// Shape drawing functions
+function drawStar(ctx, x, y, size) {
+  const spikes = 5;
+  const outerRadius = size;
+  const innerRadius = size * 0.4;
+  const step = Math.PI / spikes;
+  
+  ctx.beginPath();
+  for (let i = 0; i < 2 * spikes; i++) {
+    const radius = i % 2 === 0 ? outerRadius : innerRadius;
+    const angle = i * step - Math.PI / 2;
+    const px = x + Math.cos(angle) * radius;
+    const py = y + Math.sin(angle) * radius;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawMoon(ctx, x, y, size) {
+  ctx.beginPath();
+  ctx.arc(x, y, size, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x + size * 0.3, y, size * 0.7, 0, Math.PI * 2);
+  ctx.fillStyle = config.backgroundColor;
+  ctx.fill();
+  ctx.fillStyle = rgbaToString({ r: 255, g: 255, b: 255, a: 1 });
+}
+
+function drawHeart(ctx, x, y, size) {
+  const topCurveHeight = size * 0.3;
+  ctx.beginPath();
+  ctx.moveTo(x, y + topCurveHeight);
+  ctx.bezierCurveTo(x, y, x - size, y, x - size, y + topCurveHeight);
+  ctx.bezierCurveTo(x - size, y + (size + topCurveHeight) / 2, x, y + (size + topCurveHeight) / 2, x, y + size);
+  ctx.bezierCurveTo(x, y + (size + topCurveHeight) / 2, x + size, y + (size + topCurveHeight) / 2, x + size, y + topCurveHeight);
+  ctx.bezierCurveTo(x + size, y, x, y, x, y + topCurveHeight);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawArrow(ctx, x, y, size) {
+  ctx.beginPath();
+  ctx.moveTo(x - size, y - size * 0.5);
+  ctx.lineTo(x + size * 0.3, y - size * 0.5);
+  ctx.lineTo(x + size * 0.3, y - size);
+  ctx.lineTo(x + size, y);
+  ctx.lineTo(x + size * 0.3, y + size);
+  ctx.lineTo(x + size * 0.3, y + size * 0.5);
+  ctx.lineTo(x - size, y + size * 0.5);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawSquare(ctx, x, y, size) {
+  ctx.beginPath();
+  ctx.rect(x - size, y - size, size * 2, size * 2);
+  ctx.fill();
+}
+
+function drawDiamond(ctx, x, y, size) {
+  ctx.beginPath();
+  ctx.moveTo(x, y - size);
+  ctx.lineTo(x + size, y);
+  ctx.lineTo(x, y + size);
+  ctx.lineTo(x - size, y);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawTriangle(ctx, x, y, size) {
+  ctx.beginPath();
+  ctx.moveTo(x, y - size);
+  ctx.lineTo(x - size, y + size);
+  ctx.lineTo(x + size, y + size);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawShape(ctx, shapeType, x, y, size, color) {
+  ctx.fillStyle = color;
+  switch (shapeType) {
+    case 'star': drawStar(ctx, x, y, size); break;
+    case 'moon': drawMoon(ctx, x, y, size); break;
+    case 'heart': drawHeart(ctx, x, y, size); break;
+    case 'arrow': drawArrow(ctx, x, y, size); break;
+    case 'square': drawSquare(ctx, x, y, size); break;
+    case 'diamond': drawDiamond(ctx, x, y, size); break;
+    case 'triangle': drawTriangle(ctx, x, y, size); break;
+    default: 
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
+  }
 }
 
 function resizeCanvasToDisplaySize() {
@@ -160,6 +266,22 @@ function update(dt) {
   const hoverEffect = config.hoverEffect;
   const animStyle = config.animationStyle;
 
+  // Update hovered particles set for shape change effect
+  if (hoverEffect === 'shape') {
+    hoveredParticles.clear();
+    if (isPointerInside) {
+      for (const p of particles) {
+        const dx = p.x - pointer.x;
+        const dy = p.y - pointer.y;
+        const distSq = dx * dx + dy * dy;
+        const radius = config.hoverRadius;
+        if (distSq < radius * radius) {
+          hoveredParticles.add(p);
+        }
+      }
+    }
+  }
+
   for (const p of particles) {
     const toHomeX = p.homeX - p.x;
     const toHomeY = p.homeY - p.y;
@@ -171,6 +293,7 @@ function update(dt) {
     p.vx *= Math.exp(-damping * dt);
     p.vy *= Math.exp(-damping * dt);
 
+    // Handle primary hover effects (repel/attract)
     if (isPointerInside && (hoverEffect === 'repel' || hoverEffect === 'attract')) {
       const dx = p.x - pointer.x;
       const dy = p.y - pointer.y;
@@ -185,6 +308,31 @@ function update(dt) {
         const force = (hoverEffect === 'repel' ? config.repelForce : config.attractForce) * intensity;
         p.vx += dirX * force * dt;
         p.vy += dirY * force * dt;
+      }
+    }
+
+    // Handle secondary hover effects when shape change is active
+    if (isPointerInside && hoverEffect === 'shape' && config.hoverEffect2 !== 'none') {
+      const dx = p.x - pointer.x;
+      const dy = p.y - pointer.y;
+      const distSq = dx * dx + dy * dy;
+      const radius = config.hoverRadius;
+      const radiusSq = radius * radius;
+      if (distSq < radiusSq) {
+        const dist = Math.sqrt(distSq) + 0.0001;
+        const dirX = dx / dist;
+        const dirY = dy / dist;
+        const intensity = (1 - dist / radius);
+        
+        if (config.hoverEffect2 === 'repel') {
+          const force = config.repelForce * intensity;
+          p.vx += dirX * force * dt;
+          p.vy += dirY * force * dt;
+        } else if (config.hoverEffect2 === 'attract') {
+          const force = config.attractForce * intensity;
+          p.vx += dirX * force * dt;
+          p.vy += dirY * force * dt;
+        }
       }
     }
 
@@ -207,7 +355,19 @@ function update(dt) {
       p.opacity = 1;
     }
 
+    // Handle primary fade effect
     if (isPointerInside && hoverEffect === 'fade' && animStyle !== 'twinkle') {
+      const dx = p.x - pointer.x;
+      const dy = p.y - pointer.y;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      const radius = config.hoverRadius;
+      const t = clamp(d / radius, 0, 1);
+      const targetOpacity = 0.15 + t * 0.85;
+      p.opacity = targetOpacity;
+    }
+
+    // Handle secondary fade effect when shape change is active
+    if (isPointerInside && hoverEffect === 'shape' && config.hoverEffect2 === 'fade' && animStyle !== 'twinkle') {
       const dx = p.x - pointer.x;
       const dy = p.y - pointer.y;
       const d = Math.sqrt(dx * dx + dy * dy);
@@ -226,16 +386,32 @@ function draw() {
   drawBackground();
 
   const size = clamp(config.dotSize, 1, 20);
+  const hoverEffect = config.hoverEffect;
+  const defaultShape = config.defaultShape;
 
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   for (const p of particles) {
     const rgba = { ...p.color, a: clamp(p.opacity, 0, 1) };
-    ctx.fillStyle = rgbaToString(rgba);
     const s = size * p.sizeScale;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, s, 0, Math.PI * 2);
-    ctx.fill();
+    const color = rgbaToString(rgba);
+    
+    // Check if this particle should be drawn as a hover shape
+    if (hoverEffect === 'shape' && hoveredParticles.has(p)) {
+      drawShape(ctx, config.shapeType, p.x, p.y, s, color);
+    } else {
+      // Draw as default shape (dots, triangle, moon, etc.)
+      if (defaultShape === 'dots') {
+        // Draw as regular circle
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, s, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // Draw as selected default shape
+        drawShape(ctx, defaultShape, p.x, p.y, s, color);
+      }
+    }
   }
   ctx.restore();
 }
@@ -310,9 +486,21 @@ function updateConfigFromUI() {
   config.density = Number(densityEl.value);
   densityValueEl.textContent = String(config.density);
 
+  config.defaultShape = defaultShapeEl.value;
   config.animationStyle = animationStyleEl.value;
   config.hoverEffect = hoverEffectEl.value;
+  config.shapeType = shapeTypeEl.value;
+  config.hoverEffect2 = hoverEffect2El.value;
   config.backgroundColor = backgroundColorEl.value;
+
+  // Show/hide shape selector and second hover effect based on hover effect
+  if (config.hoverEffect === 'shape') {
+    shapeSelectorGroup.style.display = 'grid';
+    hoverEffect2Group.style.display = 'grid';
+  } else {
+    shapeSelectorGroup.style.display = 'none';
+    hoverEffect2Group.style.display = 'none';
+  }
 
   if (imageBitmap) {
     if (updateConfigFromUI._lastDensity !== config.density) {
@@ -326,8 +514,11 @@ function updateConfigFromUI() {
 ['input', 'change'].forEach((ev) => {
   dotSizeEl.addEventListener(ev, updateConfigFromUI);
   densityEl.addEventListener(ev, updateConfigFromUI);
+  defaultShapeEl.addEventListener(ev, updateConfigFromUI);
   animationStyleEl.addEventListener(ev, updateConfigFromUI);
   hoverEffectEl.addEventListener(ev, updateConfigFromUI);
+  shapeTypeEl.addEventListener(ev, updateConfigFromUI);
+  hoverEffect2El.addEventListener(ev, updateConfigFromUI);
   backgroundColorEl.addEventListener(ev, updateConfigFromUI);
 });
 
@@ -353,9 +544,6 @@ canvas.addEventListener('pointermove', (e) => {
 });
 
 // Buttons
-resetBtn.addEventListener('click', () => {
-  reset();
-});
 
 // Download dropdown functionality
 downloadDropdownBtn.addEventListener('click', (e) => {
@@ -390,8 +578,11 @@ downloadJsonBtn.addEventListener('click', () => {
     config: {
       dotSize: size,
       density: config.density,
+      defaultShape: config.defaultShape,
       animationStyle: config.animationStyle,
       hoverEffect: config.hoverEffect,
+      shapeType: config.shapeType,
+      hoverEffect2: config.hoverEffect2,
     },
     particles: particles.map((p) => ({
       x: Number(p.homeX.toFixed(2)),
@@ -421,8 +612,11 @@ downloadZipBtn.addEventListener('click', async () => {
     config: {
       dotSize: size,
       density: config.density,
+      defaultShape: config.defaultShape,
       animationStyle: config.animationStyle,
       hoverEffect: config.hoverEffect,
+      shapeType: config.shapeType,
+      hoverEffect2: config.hoverEffect2,
     },
     particles: particles.map((p) => ({
       x: Number(p.homeX.toFixed(2)),
@@ -447,7 +641,7 @@ downloadZipBtn.addEventListener('click', async () => {
       animationStyle: data.config.animationStyle,
       hoverEffect: data.config.hoverEffect,
       bg: data.canvas.backgroundColor,
-      hoverRadius: 150, repelForce: 520, attractForce: -360,
+      hoverRadius: 150, repelForce: 1200, attractForce: -800,
     };
     const particles = data.particles.map(p => ({
       homeX: p.x, homeY: p.y, x: p.x, y: p.y, vx:0, vy:0,
